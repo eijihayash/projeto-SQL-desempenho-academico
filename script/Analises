@@ -1,0 +1,245 @@
+-- Entendendo possíveis analise com SQL
+SELECT * FROM bi.student_dataset_cleaned;
+
+-- Quantidade total de aluno por País
+SELECT 
+	t.country
+    ,t.contagem
+    ,ROUND(t.contagem * 100 / total.total_alunos,2) AS porcentagem
+    FROM (
+    SELECT 
+	country
+    ,COUNT(country) AS contagem
+FROM bi.student_dataset_cleaned
+GROUP BY country
+) t
+CROSS JOIN (
+	SELECT COUNT(*) AS total_alunos FROM bi.student_dataset_cleaned
+) total;
+-- Mais de 60% pertence ao pais de Norway
+
+-- Diferença das idades entre os alunos
+SELECT
+	MIN(Age) AS min_age
+    ,MAX(Age) AS max_age
+    ,ROUND(AVG(Age),2) AS avg_age
+FROM bi.student_dataset_cleaned;
+-- O mínimo é 21, máximo 71 e médio 35.21
+
+-- Distribuição por gênero
+SELECT
+	gender
+    ,COUNT(*) AS contagem
+    ,ROUND(COUNT(*) *100 /SUM(COUNT(*)) OVER(),2) AS porcentagem
+FROM bi.student_dataset_cleaned
+GROUP BY gender;
+-- 55% dos alunos são feminos e 44% são masculinos
+
+-- Distribuição por residencia
+SELECT
+	residence
+    ,COUNT(*) AS contagem
+    ,ROUND(COUNT(*) *100 /SUM(COUNT(*)) OVER(),2) AS porcentagem
+FROM bi.student_dataset_cleaned
+GROUP BY residence;
+-- 42% são da Private, 41% BI Residence e 15% Sognsvann
+
+-- Desempenho academico geral
+SELECT (
+	SELECT AVG(python)
+	FROM bi.student_dataset_cleaned
+	WHERE python <> 0
+    ) AS media_python
+	,AVG(db) AS media_db
+FROM bi.student_dataset_cleaned;
+-- No geral o desempenho média de python é 75 e db é 69.
+
+-- Desempenho por genero
+SELECT 
+	gender
+    ,AVG(NULLIF(python, 0)) AS media_python -- ignora os valores 0
+	,AVG(db) AS media_db
+FROM bi.student_dataset_cleaned
+GROUP BY gender;
+-- A média das mulheres em python são 1 ponto superior, porem em db os homens são 10 pontos superioes
+
+-- Ranking dos alunos
+SELECT 
+	gender
+	,first_name
+    ,last_name
+    ,NULLIF(python, 0) + db /2 AS media
+FROM bi.student_dataset_cleaned
+ORDER BY media DESC
+LIMIT 10;
+-- Lista de Ranking TOP 10 a partir da média da nota de python e db, 5 são homens e 5 são mulheres
+SELECT
+	AVG(Age) AS media_idade
+FROM(
+	SELECT 
+		gender
+		,Age
+		,first_name
+		,last_name
+		,NULLIF(python, 0) + db /2 AS media
+	FROM bi.student_dataset_cleaned
+	ORDER BY media DESC
+	LIMIT 10
+	) t;
+-- A media de idade do RankTOP10 é de 36
+
+-- O ensino imacta na media?
+SELECT 
+	previous_education
+    ,AVG(NULLIF(python, 0)) AS media_python -- ignora os valores 0
+	,AVG(db) AS media_db
+FROM bi.student_dataset_cleaned
+GROUP BY previous_education
+ORDER BY media_python, media_db DESC;
+-- Masters e Bachelors tem o maior desempenho na nota tanto em python quanto em db
+
+-- Relação hora de estudo x desempenho
+SELECT 
+	study_hours
+    ,AVG(NULLIF(python, 0)) AS media_python
+    ,AVG(db) AS media_db
+FROM bi.student_dataset_cleaned
+GROUP BY study_hours
+ORDER BY study_hours DESC;
+-- Em python Aluno(a) que dedicou 122horas teve maior nota e em db Aluno(a) que dedicou 154h teve maior nota
+-- Não conseguimos entrar em mais detalhe
+
+-- Entendendo mais a relação entre tempo de estudo x desempenho
+SELECT 
+	CASE
+		WHEN study_hours < 121 THEN "-120h"
+        WHEN study_hours BETWEEN 121 AND 130 THEN "121-130h"
+        WHEN study_hours BETWEEN 131 AND 140 THEN "131-140h"
+        WHEN study_hours BETWEEN 141 AND 150 THEN "141-150h"
+        ELSE "+150"
+	END AS faixa_estudo
+	,AVG(entry_exam) AS entry_exam
+    ,AVG(NULLIF(python, 0)) AS media_python
+    ,AVG(db) AS media_db
+    ,COUNT(*)
+FROM bi.student_dataset_cleaned
+GROUP BY faixa_estudo;
+-- Agora podemos dizer que os alunos que estudaram mais de 150horas tiraram melhores notas e também estes alunos foram os que obteram melhores notas no exame de entrada.
+
+
+-- Efeito da educação
+SELECT
+	previous_education
+    ,AVG(entry_exam) AS entry_exam
+    ,AVG(NULLIF(python, 0)) AS media_python
+    ,AVG(db) AS media_db
+    ,COUNT(*)
+FROM bi.student_dataset_cleaned
+GROUP BY previous_education;
+-- Como vimos anteriormente, Masters e Bachelors obtiveram melhores notas no entry_exam, python e db
+
+-- verificando o tempo de estudo por educação
+SELECT 
+	CASE
+		WHEN study_hours < 121 THEN "-120h"
+        WHEN study_hours BETWEEN 121 AND 130 THEN "121-130h"
+        WHEN study_hours BETWEEN 131 AND 140 THEN "131-140h"
+        WHEN study_hours BETWEEN 141 AND 150 THEN "141-150h"
+        ELSE "+150"
+	END AS faixa_estudo
+    ,previous_education
+    ,COUNT(*) contagem
+    ,ROUND(COUNT(*) *100 /SUM(COUNT(*)) OVER(PARTITION BY previous_education),2) AS porcentagem
+FROM bi.student_dataset_cleaned
+GROUP BY previous_education, faixa_estudo;
+-- 87% em relação ao total de Masters e 84% em relação ao total de Bachelors estudaram mais de 150horas, ou seja, não é somente a educação, mas sim há uma relação entre o tempo de estudo para boa nota
+
+-- faixa etaria por desempenhol
+SELECT
+	CASE
+		WHEN Age < 25 THEN "Menos de 25"
+		WHEN Age BETWEEN 25 AND 35 THEN "25-35"
+        WHEN Age BETWEEN 36 AND 45 THEN "36-45"
+        ELSE "46+"
+	END AS faixa_etaria
+	,AVG(entry_exam) AS entry_exam
+    ,AVG(NULLIF(python, 0)) AS media_python
+    ,AVG(db) AS media_db
+    ,COUNT(*)
+FROM bi.student_dataset_cleaned
+GROUP BY faixa_etaria;
+-- idade entre 25 a 45 tem o melhor desempenho
+-- idade menos de 25 tem o pior desempenhol
+
+-- TOP 3 posições da média por residence
+SELECT *
+FROM(
+		SELECT
+			residence
+            ,first_name
+            ,last_name
+            ,(NULLIF(python, 0) + db)/2 AS media
+            ,ROW_NUMBER() OVER (PARTITION BY residence ORDER BY (NULLIF(python, 0) + db) / 2 DESC) AS posicao -- PARTITION (contagem de 1 a 3 posição por residencia pela média)
+		FROM bi.student_dataset_cleaned
+	) t
+    WHERE posicao <= 3; -- filtro
+    
+-- Comparação da entrada no exame x desempenho real
+SELECT
+	first_name
+    ,last_name
+    ,(NULLIF(python, 0) + db)/2 AS media
+	,entry_exam 
+	,(NULLIF(python, 0) + db)/2 - entry_exam AS diferenca
+FROM bi.student_dataset_cleaned
+ORDER BY diferenca DESC;
+-- Sim, existe uma relação com a nota de entrada com desempenho. muitos alunos que tiraram notas boas no exame de entrada obteram boas notas na materia de python e db
+
+-- Quantois superaram o exame inicial
+SELECT
+    ROUND(
+		COUNT(*) * 100 / (SELECT COUNT(*) FROM bi.student_dataset_cleaned)
+    ) AS porcentagem
+FROM(
+	SELECT
+		(NULLIF(python, 0) + db)/2 - entry_exam AS diferenca
+    FROM bi.student_dataset_cleaned
+	) t
+WHERE diferenca > 0;
+-- 25% superam notas maiores que o exame de entreda
+
+-- Quem estudou muito mas não performou bem
+SELECT COUNT(*) * 100 / (SELECT COUNT(*) FROM bi.student_dataset_cleaned WHERE study_hours > 150) AS porcentagem
+FROM(
+	SELECT
+		(NULLIF(python, 0) + db)/2 AS media
+	FROM bi.student_dataset_cleaned
+	WHERE study_hours > 150 
+	AND (NULLIF(python, 0) + db)/2 < (SELECT 
+									AVG((NULLIF(python, 0) + db)/2)
+									FROM bi.student_dataset_cleaned
+								  )
+	)t;
+
+-- 23% que estudaram mais de 150h e ficaram a baixo da media.
+
+
+-- Desempenho por residencia
+SELECT
+	residence
+    ,previous_education
+    ,ROUND(AVG(NULLIF(python,0)),2) AS media_python
+    ,ROUND(AVG(db),2) AS media_db
+    ,COUNT(*) AS total
+FROM bi.student_dataset_cleaned
+GROUP BY residence,previous_education;
+-- Sognsvann tem o melhor desempenho
+
+-- Dividindo o aluno em quartil do melhor desempenho a pior
+SELECT 
+    first_name, last_name,
+    (NULLIF(python,0) + db) / 2 AS media,
+    NTILE(4) OVER (ORDER BY (NULLIF(python,0) + db) / 2 DESC) AS quartil
+FROM bi.student_dataset_cleaned;
+    
+
