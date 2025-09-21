@@ -1,0 +1,115 @@
+-- Criando a tabela com os dados limpos
+CREATE TABLE bi.student_dataset_cleaned AS 
+	SELECT
+     TRIM(REPLACE(fNAME, 'ø', 'o')) AS first_name
+    ,TRIM(REPLACE(REPLACE(REPLACE(lNAME, 'ø', 'o'), 'æ', 'ae'), 'ü', 'u')) AS last_name
+    ,Age
+    ,CASE 
+		WHEN gender = "M" THEN "Male"
+        WHEN gender = "F" THEN "Female"
+        ELSE TRIM(gender)
+	END AS gender
+    ,country
+    ,CASE
+		WHEN TRIM(residence) <> "Private" AND TRIM(residence) <> "Sognsvann"
+            THEN "BI Residence"
+		ELSE TRIM(residence)
+		END AS residence 
+    ,entryEXAM AS entry_exam
+    ,CASE
+			WHEN TRIM(prevEducation) = "HighSchool"
+				THEN "High School"
+			WHEN TRIM(prevEducation) = "Diplomaaa"
+				THEN "Diploma"
+			WHEN TRIM(prevEducation) = "Barrrchelors"
+				THEN "Bachelors"
+            ELSE TRIM(prevEducation)
+            END AS previous_education
+		,studyHOURS AS study_hours
+        ,CASE 
+			WHEN Python IS NULL OR TRIM(Python) = '' THEN 0
+			ELSE CAST(Python AS DECIMAL(10,2))
+			END AS python
+        ,CAST(DB AS DECIMAL(10,2)) AS db
+FROM bi.bi;
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+-- testes
+-- Entendendo sobre a tabela
+SELECT * FROM bi.bi;
+
+-- Verificando os nomes
+SELECT
+	fNAME
+    ,lNAME
+    ,REPLACE(fNAME, 'ø', 'o')
+    ,REPLACE(REPLACE(REPLACE(lNAME, 'ø', 'o'), 'æ', 'ae'), 'ü', 'u')
+FROM bi.bi;
+
+
+-- Verificando se há inconsistencia
+SELECT 
+	age
+FROM bi.bi
+GROUP BY age;
+
+-- Veirificando se há inconsistencia e tranformando.
+SELECT
+	gender,
+    CASE 
+		WHEN gender = "M" THEN "Male"
+        WHEN gender = "F" THEN "Female"
+        ELSE TRIM(gender)
+	END AS gender
+FROM bi.bi
+GROUP BY gender;
+
+-- Verificando se há inconsistencia
+SELECT country FROM bi.bi
+GROUP BY country
+ORDER BY country ASC;
+
+-- Veirificando se há inconsistencia e tranformando.
+SELECT residence 
+	   ,CASE
+		WHEN TRIM(residence) <> "Private" AND TRIM(residence) <> "Sognsvann"
+            THEN "BI Residence"
+		ELSE TRIM(residence)
+		END AS residence
+        ,
+FROM bi.bi
+GROUP BY residence;
+
+-- Verificando se há inconsistencia
+SELECT entryEXAM FROM bi.bi
+GROUP BY entryEXAM;
+
+-- Veirificando se há inconsistencia e tranformando.
+SELECT prevEducation 
+		,CASE
+			WHEN TRIM(prevEducation) = "HighSchool"
+				THEN "High School"
+			WHEN TRIM(prevEducation) = "Diplomaaa"
+				THEN "Diploma"
+            ELSE TRIM(prevEducation)
+            END AS prevEducation_cleaned
+FROM bi.bi
+GROUP BY prevEducation;
+
+-- Verificando se há inconsistencia
+SELECT 
+	studyHOURS
+FROM bi.bi
+GROUP BY studyHOURS;
+
+-- Verificando se há inconsistencia
+SELECT
+	fNAME
+    ,lNAME
+    ,python
+    ,db
+FROM bi.bi
+WHERE python NOT BETWEEN 0 AND 100
+	OR DB NOT BETWEEN 0 AND 100
+    OR entryEXAM NOT BETWEEN 0 AND 100;
+
