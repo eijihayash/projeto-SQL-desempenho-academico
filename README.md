@@ -87,6 +87,10 @@ Cerca de **25%** dos alunos superaram a nota do exame de entrada.
 
 **23%** dos alunos que estudaram mais de 150 horas ficaram abaixo da média, mostrando que tempo de estudo sozinho não garante desempenho.
 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 **Quartis de desempenho**
 
 Ao dividir os alunos em 4 quartis, conseguimos visualizar os melhores e piores desempenhos do dataset.
